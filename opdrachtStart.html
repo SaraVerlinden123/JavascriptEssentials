@@ -44,12 +44,12 @@
             <div class="row mb-3">
               <div class="col-md-6">
                 <label for="wachtwoord" class="form-label">Wachtwoord</label>
-                <input type="password" class="form-control" id="wachtwoord" placeholder="" />
+                <input type="password" class="form-control" id="wachtwoord" placeholder="" autocomplete="on" />
                 <small id="wachtwoordHulp" class="text-muted"> Je wachtwoord moet minstens 8 tekens lang zijn </small>
               </div>
               <div class="col-md-6">
                 <label for="wachtwoordHerhaling" class="form-label">Herhaal wachtwoord</label>
-                <input type="password" class="form-control" id="wachtwoordHerhaling" placeholder="" />
+                <input type="password" class="form-control" id="wachtwoordHerhaling" placeholder="" autocomplete="on" />
               </div>
             </div>
             <div class="row mb-3">
@@ -100,20 +100,24 @@
               <div class="col-md-6">
                 <h4>Betaling</h4>
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="flexRadioBankingApp" id="flexRadioBankingApp" />
+                  <input class="form-check-input" type="radio" name="flexRadio" id="flexRadioBankingApp" />
                   <label class="form-check-label" for="flexRadioBankingApp">Banking app</label>
                 </div>
-                <div class="form-check"><input class="form-check-input" type="radio" name="flexRadioOverschrijving" id="flexRadioOverschrijving" /> <label class="form-check-label" for="flexRadioOverschrijving">Overschrijving</label></div>
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="flexRadioVisa" id="flexRadioVisa" />
+                  <input class="form-check-input" type="radio" name="flexRadio" id="flexRadioOverschrijving" />
+                  <label class="form-check-label" for="flexRadioOverschrijving">Overschrijving</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="flexRadio" id="flexRadioVisa" />
                   <label class="form-check-label" for="flexRadioVisa">Visa card</label>
                 </div>
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="flexRadioPaypal" id="flexRadioPaypal" />
+                  <input class="form-check-input" type="radio" name="flexRadio" id="flexRadioPaypal" />
                   <label class="form-check-label" for="flexRadioBankingApp">Paypal</label>
                 </div>
               </div>
             </div>
+
             <div class="row">
               <div class="col-md-12"><hr /></div>
             </div>
@@ -123,10 +127,8 @@
           </form>
         </div>
         <div class="col-md">
-          <div id="success" class="alert alert-success" role="alert">alert</div>
-          <div id="errors" class="alert alert-danger" role="alert">
-            <ul class="mb-0"></ul>
-          </div>
+          <div id="success" class="alert alert-success" role="alert">U bent correct geregistreerd.</div>
+          <div id="errors" class="alert alert-danger" role="alert"></div>
           <div id="info" class="alert alert-info" role="alert"></div>
         </div>
       </div>
@@ -139,30 +141,41 @@
       const adresVeld = document.querySelector("#adres");
       const landVeld = document.querySelector("#land");
       const provincieVeld = document.querySelector("#provincie");
-      const emailadres = document.querySelector("#email").value;
+      const emailVeld = document.querySelector("#email");
       const wachtwoordVeld = document.querySelector("#wachtwoord");
       const wachtwoordHerhalingVeld = document.querySelector("#wachtwoordHerhaling");
-      const betalingswijzeVeld = document.querySelector("#info");
       const postcodeVeld = document.querySelector("#postcode");
-
-      let legeVeldenArray = [landVeld, naamVeld, gebruikersnaamVeld, adresVeld, landVeld, provincieVeld];
+      const algemeneVoorwaardenVeld = document.querySelector("#voorwaardenCheck");
+      const alertSucces = document.querySelector("#success");
+      const alertError = document.querySelector("#errors");
+      const alertInfo = document.querySelector("#info");
+      const errorLijst = document.querySelector("#errorLijst");
       let errorArray = [];
+      let legeVeldenArray = [voornaamVeld, naamVeld, gebruikersnaamVeld, adresVeld, landVeld, provincieVeld];
+
+      hideAlerts();
 
       function validateForm() {
-        console.log("je hebt gedrukt");
-        // legeVeldenArray.forEach((veld) => {
-        //   let bericht = messageCreation(veld);
-        //   checkEmptyField(veld, bericht);
-        // });
+        hideAlerts();
+        //Eerst reset'n of errorArray terug leegmaken
+        removeErrors(errorArray);
+        errorArray = [];
 
-        // validatePassword(wachtwoordVeld);
-        // validatePassword(wachtwoordHerhalingVeld);
+        legeVeldenArray.forEach((veld) => {
+          let bericht = messageCreation(veld);
+          checkEmptyField(veld, bericht);
+        });
 
-        // let emailvaliditeit = validateEmail(emailadres);
+        validatePassword(wachtwoordVeld);
+        validatePassword(wachtwoordHerhalingVeld);
 
-        // validatePayment(betalingswijzeVeld);
+        let emailadres = emailVeld.value;
+        validateEmail(emailadres);
+
+        validatePayment(alertInfo);
         checkPC(postcodeVeld);
-        console.log(errorArray);
+        checkAlgemeneVoorwaarden(algemeneVoorwaardenVeld);
+        showErrors(errorArray);
       }
 
       function messageCreation(veld) {
@@ -189,7 +202,7 @@
             }
           }
           //Error bericht indien wachtwoorden niet gelijk
-          if (wachtwoordVeld.value != wachtwoordHerhalingVeld.value) {
+          if (wachtwoordVeld.value != wachtwoordHerhalingVeld.value && !errorArray.includes("Je wachtwoorden komen niet overeen")) {
             errorArray.push("Je wachtwoorden komen niet overeen");
           }
         }
@@ -212,56 +225,107 @@
         return leegte;
       }
 
-      //Voorbeeld StackOverflow  https://stackoverflow.com/questions/46155/how-can-i-validate-an-email-address-in-javascript
-      const validateEmail = (email) => {
-        let resultaat = String(email)
-          .toLowerCase()
-          .match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<br>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
-        //als er iets teruggegeven wordt door de match, is het een correct adres
-        if (resultaat != null) {
-          resultaat = true;
+      function validateEmail(input) {
+        let ingevuld = true;
+        if (input == "") {
+          //geen email ingevuld
+          bericht = "Het veld email is vereist.";
+          errorArray.push(bericht);
+          let ingevuld = false;
         } else {
-          resultaat = false;
-          errorArray.push("E-mailadres is niet correct");
+          console.log("IN ELSE");
+          console.log(input);
+          //email is ingevuld nu gaan we de validiteit nagaan
+          //Gebruikersnaam: ^[a-zA-Z0-9_]+[-]?[.]?[a-zA-Z0-9_]*
+          //VRAAG: uit opdracht leid ik af dat een _ ook als eerst teken kan, het mag het bevatten en staat niet bij dat deze niet eeste karakter kan zijn
+          //indien dat niet mag zou de regex zijn: ^[a-zA-Z0-9]+[-]?[.]?[a-zA-Z0-9_]*
+          //Moet @ bevatten ==> regex ^[a-zA-Z0-9_]+[-]?[.]?[a-zA-Z0-9_]*@
+          //Domein: mag 1 punt (niet meerdere)
+          //Domein: mag meerdere -
+          //VRAAG: vreemd dat het domein geen put MOET maar enkel MAG..... is niet echt valid...
+          //Misschien zijn de instructeies eerder minimum vereisten. Ik voeg toch punt toe als moet!
+
+          let resultaat = String(input)
+            .toLowerCase()
+            .match(/^[a-zA-Z0-9_]+[-]?[.]?[a-zA-Z0-9_]*@[a-zA-Z0-9]{1}[a-zA-Z0-9-]+[.][a-zA-Z0-9-]+/);
+          //als er geen match is is het niet correct
+          console.log("resultaat: " + resultaat);
+          if (resultaat == null) {
+            //niet correct
+            bericht = "E-mailadres is niet correct";
+            errorArray.push(bericht);
+          }
         }
-        return resultaat;
-      };
+
+        return ingevuld;
+      }
 
       function validatePayment(veld) {
-        //Vraag: moet het mogelijk zijn om maar 1 betalingswijze aan te duiden?
-        let bericht = "<h5>Betalingswijze</h5><p>Je betalingswijze is";
         let bankingApp = document.querySelector("#flexRadioBankingApp");
         let overschrijving = document.querySelector("#flexRadioOverschrijving");
         let visa = document.querySelector("#flexRadioVisa");
         let paypal = document.querySelector("#flexRadioPaypal");
-        if (bankingApp.checked) {
-          bericht += " Banking app";
+        // indien niets is ingevuld, error geven
+        //niet zeker of dit moet volgens de opdracht....)
+        if (!bankingApp.checked && !overschrijving.checked && !visa.checked && !paypal.checked) {
+          let bericht = "Je hebt geen betalingswijze aangeduid.";
+          errorArray.push(bericht);
+        } else {
+          let bericht = "<h5>Betalingswijze</h5><p>Je betalingswijze is";
+          if (bankingApp.checked) {
+            bericht += " Banking app";
+          }
+          if (overschrijving.checked) {
+            bericht += " Overschrijving";
+          }
+          if (visa.checked) {
+            bericht += " Visa card";
+          }
+          if (paypal.checked) {
+            bericht += " Paypal";
+          }
+          bericht += "</p>";
+          veld.innerHTML = bericht;
+          alertInfo.classList.remove("d-none");
         }
-        if (overschrijving.checked) {
-          bericht += " Overschrijving";
-        }
-        if (visa.checked) {
-          bericht += " Visa card";
-        }
-        if (paypal.checked) {
-          bericht += " Paypal";
-        }
-        bericht += "</p>";
-        veld.innerHTML = bericht;
       }
 
-      // function checkPC(veld) {
-      //   let bericht = messageCreation(veld);
-      //   let leegte = checkEmptyField(veld, bericht);
-      //   console.log(leegte);
-      //   console.log(veld.value);
-      //   if (!leegte && veld.value < 1000) {
-      //     message = "De waarde van de postcode moet tussen 1000 en 9999 liggen";
-      //     errorArray.push(message);
-      //   }
-      // }
+      function checkPC(veld) {
+        let bericht = messageCreation(veld);
+        let leegte = checkEmptyField(veld, bericht);
+        if (!leegte && (veld.value < 1000) | (veld.value > 9999)) {
+          message = "De waarde van de postcode moet tussen 1000 en 9999 liggen";
+          errorArray.push(message);
+        }
+      }
 
-      function hideAlerts() {}
+      function checkAlgemeneVoorwaarden(veld) {
+        if (!algemeneVoorwaardenVeld.checked) {
+          bericht = "Je hebt de algemene voorwaarden niet aangeduid.";
+          errorArray.push(bericht);
+        }
+      }
+
+      function hideAlerts() {
+        alertSucces.classList.add("d-none");
+        alertError.classList.add("d-none");
+        alertInfo.classList.add("d-none");
+      }
+
+      function showErrors(errorArray) {
+        if (errorArray.length > 0) {
+          errorArray.forEach((element) => {
+            alertError.innerHTML += element + "</br>";
+          });
+          alertError.classList.remove("d-none");
+        } else {
+          alertSucces.classList.remove("d-none");
+        }
+      }
+
+      function removeErrors(errorArray) {
+        alertError.innerHTML = "";
+      }
 
       checkForm.addEventListener("click", validateForm);
     </script>
