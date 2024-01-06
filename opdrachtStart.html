@@ -79,7 +79,7 @@
               </div>
               <div class="col-md-3">
                 <label for="postcode" class="form-label">Postcode</label>
-                <input type="text" class="form-control" id="postcode" placeholder="" />
+                <input type="number" class="form-control" id="postcode" placeholder="" />
               </div>
             </div>
             <div class="row">
@@ -127,13 +127,17 @@
           </form>
         </div>
         <div class="col-md">
-          <div id="success" class="alert alert-success" role="alert">U bent correct geregistreerd.</div>
+          <div id="success" class="alert alert-success" role="alert">
+            <h4>Goed gedaan!</h4>
+            <p>Aww yeah, je werd geregisteerd.</p>
+          </div>
           <div id="errors" class="alert alert-danger" role="alert"></div>
           <div id="info" class="alert alert-info" role="alert"></div>
         </div>
       </div>
     </main>
     <script>
+      // Ophalen van de nodige velden
       const checkForm = document.querySelector("#btnCheck");
       const voornaamVeld = document.querySelector("#voornaam");
       const naamVeld = document.querySelector("#naam");
@@ -149,33 +153,77 @@
       const alertSucces = document.querySelector("#success");
       const alertError = document.querySelector("#errors");
       const alertInfo = document.querySelector("#info");
-      const errorLijst = document.querySelector("#errorLijst");
-      let errorArray = [];
-      let legeVeldenArray = [voornaamVeld, naamVeld, gebruikersnaamVeld, adresVeld, landVeld, provincieVeld];
+      // We gaan errors bijhouden doorheen de validatie. We beginnen met een lege errors.
+      let errors = [];
 
       hideAlerts();
 
       function validateForm() {
+        //We starten eerst met de alerts terug te verbergen als ze er nog stonden en maken de array 'errors' en alertError terug leeg
         hideAlerts();
-        //Eerst reset'n of errorArray terug leegmaken
-        removeErrors(errorArray);
-        errorArray = [];
+        alertError.innerHTML = "";
+        errors = [];
 
-        legeVeldenArray.forEach((veld) => {
-          let bericht = messageCreation(veld);
-          checkEmptyField(veld, bericht);
-        });
+        //We kijken de velden VOORNAAM, NAAM, GEBRUIKERSNAAM, ADRES, LAND, PROVINCIE na of ze niet leeg zijn.
+        //Dit kan efficient met een forEach --> nadeel is wel dat de volgorde van de errors dan niet logisch staat...
+        // let legeVeldenArray = [voornaamVeld, naamVeld, gebruikersnaamVeld, adresVeld, landVeld, provincieVeld];
+        // legeVeldenArray.forEach((veld) => {
+        //   let bericht = messageCreation(veld);
+        //   checkEmptyField(veld, bericht);
+        // });
 
+        //Om de opgave te volgen: om de errors in een logische volgorde te laten nakijken dan moeten we de functies werkeljik in de juiste volgorde oproepen
+        // nakijken VOORNAAM
+        let bericht = messageCreation(voornaamVeld);
+        checkEmptyField(voornaamVeld, bericht);
+
+        // nakijken NAAM
+        bericht = messageCreation(naamVeld);
+        checkEmptyField(naamVeld, bericht);
+
+        // nakijken GEBRUIKERSNAAM
+        bericht = messageCreation(gebruikersnaamVeld);
+        checkEmptyField(gebruikersnaamVeld, bericht);
+
+        //nakijken emailadres
+        bericht = messageCreation(emailVeld);
+        checkEmptyField(emailVeld, bericht);
+        let emailvaliditeit = validateEmail(emailVeld.value);
+        // functie geeft true als email adres correcte formaat is en false als het niet correct is.
+        //  als niet correct voegen we de error toe.
+        // dit deel kan ook in de funcite validateEmail maar omdat de opdracht werkt met boolean return gebruik het hier
+        if (emailvaliditeit == false && !errors.includes("Het veld email is vereist.")) {
+          bericht = "E-mailadres is niet correct";
+          errors.push(bericht);
+        }
+
+        //nakijken wachtwoorden
         validatePassword(wachtwoordVeld);
         validatePassword(wachtwoordHerhalingVeld);
 
-        let emailadres = emailVeld.value;
-        validateEmail(emailadres);
+        // nakijken ADRES
+        bericht = messageCreation(adresVeld);
+        checkEmptyField(adresVeld, bericht);
 
-        validatePayment(alertInfo);
+        // nakijken LAND
+        bericht = messageCreation(landVeld);
+        checkEmptyField(landVeld, bericht);
+
+        // nakijken PROVINCIE
+        bericht = messageCreation(provincieVeld);
+        checkEmptyField(provincieVeld, bericht);
+
+        //nakijken postcode
         checkPC(postcodeVeld);
+
+        //Nakijken Algemenevoorwaarden
         checkAlgemeneVoorwaarden(algemeneVoorwaardenVeld);
-        showErrors(errorArray);
+
+        //Nakijken Betaling
+        validatePayment(alertInfo);
+
+        //Weergeven van de errors indien die er zijn
+        showErrors(errors);
       }
 
       function messageCreation(veld) {
@@ -184,94 +232,82 @@
         return message;
       }
 
-      function validatePassword(password) {
-        //Error bericht maken naargelang welk wachtwoord vakje niet is ingevuld
-        if (password.value == "") {
-          if (password.id == "wachtwoord") {
-            errorArray.push("Je hebt geen wachtwoord ingevuld");
-          } else {
-            errorArray.push("Herhaal je wachtwoord");
-          }
-        } else {
-          //Error bericht maken indien wachtwoord te kort is
-          if (password.value.length < 7) {
-            if (password.id == "wachtwoord") {
-              errorArray.push("Je wachtwoord is te kort");
-            } else {
-              errorArray.push("Je wachtwoord herhaling is te kort");
-            }
-          }
-          //Error bericht indien wachtwoorden niet gelijk
-          if (wachtwoordVeld.value != wachtwoordHerhalingVeld.value && !errorArray.includes("Je wachtwoorden komen niet overeen")) {
-            errorArray.push("Je wachtwoorden komen niet overeen");
-          }
-        }
-      }
-
-      function checkEmptyField(veld, message) {
+      function checkEmptyField(veld, melding) {
         let leegte = false;
-        if (veld.type == "text") {
+        if (veld.type == "text" || veld.type == "email" || veld.type == "number") {
           //het is een input type
           if (veld.value == "") {
-            errorArray.push(message);
+            errors.push(melding);
             leegte = true;
           }
         } else {
           if (veld.options[veld.selectedIndex].text == "Kies een land" || veld.options[veld.selectedIndex].text == "Kies een provincie") {
-            errorArray.push(message);
+            errors.push(melding);
             leegte = true;
           }
         }
         return leegte;
       }
 
-      function validateEmail(input) {
-        let ingevuld = true;
-        if (input == "") {
-          //geen email ingevuld
-          bericht = "Het veld email is vereist.";
-          errorArray.push(bericht);
-          let ingevuld = false;
+      function validatePassword(password) {
+        //Error bericht maken naargelang welk wachtwoord vakje niet is ingevuld
+        if (password.value == "") {
+          if (password.id == "wachtwoord") {
+            errors.push("Het veld wachtwoord is vereist.");
+          } else {
+            errors.push("Het veld herhaal wachtwoord is vereist.");
+          }
         } else {
-          console.log("IN ELSE");
-          console.log(input);
-          //email is ingevuld nu gaan we de validiteit nagaan
-          //Gebruikersnaam: ^[a-zA-Z0-9_]+[-]?[.]?[a-zA-Z0-9_]*
-          //VRAAG: uit opdracht leid ik af dat een _ ook als eerst teken kan, het mag het bevatten en staat niet bij dat deze niet eeste karakter kan zijn
-          //indien dat niet mag zou de regex zijn: ^[a-zA-Z0-9]+[-]?[.]?[a-zA-Z0-9_]*
-          //Moet @ bevatten ==> regex ^[a-zA-Z0-9_]+[-]?[.]?[a-zA-Z0-9_]*@
-          //Domein: mag 1 punt (niet meerdere)
-          //Domein: mag meerdere -
-          //VRAAG: vreemd dat het domein geen put MOET maar enkel MAG..... is niet echt valid...
-          //Misschien zijn de instructeies eerder minimum vereisten. Ik voeg toch punt toe als moet!
-
-          let resultaat = String(input)
-            .toLowerCase()
-            .match(/^[a-zA-Z0-9_]+[-]?[.]?[a-zA-Z0-9_]*@[a-zA-Z0-9]{1}[a-zA-Z0-9-]+[.][a-zA-Z0-9-]+/);
-          //als er geen match is is het niet correct
-          console.log("resultaat: " + resultaat);
-          if (resultaat == null) {
-            //niet correct
-            bericht = "E-mailadres is niet correct";
-            errorArray.push(bericht);
+          //Error bericht maken indien wachtwoord te kort is
+          if (password.value.length < 7 && !errors.includes("Je wachtwoord is te kort.")) {
+            if (password.id == "wachtwoord") {
+              errors.push("Je wachtwoord is te kort.");
+              //VRAAG NIELS: niet duidelijk of de error wachtwoord te kort ook moet gegeven worden indien het herhalingswachtwoord te kort is...
+            }
+          }
+          //Error bericht indien wachtwoorden niet gelijk
+          if (wachtwoordVeld.value != wachtwoordHerhalingVeld.value && !errors.includes("Je wachtwoorden komen niet overeen.")) {
+            errors.push("Je wachtwoorden komen niet overeen.");
           }
         }
+      }
 
+      function validateEmail(emailadres) {
+        //VRAAG NIELS: de validiteit van het email adres in de opgave is niet altijd duidelijk en lijkt me te beperkt te zijn...
+        //Onduidelijkheid 1: mat gebruikersnaam beginnen met _? Lijkt volgens opgave van wel, persoonlijk denk ik van niet...
+        //Mijn regex laat _ niet toe als eerste karakter
+        //Onduidelijkheid 2: gebruikersnaam zou eigenlijk maar 1x een . of _ of - mogen bevatten, maar in opgave staat "underscoreS"?
+        //Mijn regex laat nu dus meerder . of _ of - toe in de gebruikersnaam
+        //Onduideljkheid 3: domein naam mag een punt, voor mij MOET een email adres een . hebben. Mijn regex eist dit dan ook, en maximaal 1
+        //Onduidelijkheid 4: Volgens mij mag een emailadres niet meerdere speciale karakters achtereen hebben zoals --- dit wordt nu niet in de regex voor gecorrigeerd.
+        //Uit de opdracht lijkt het namelijk wel zo ook te mogen....
+        let ingevuld = true;
+        let resultaat = String(emailadres)
+          .toLowerCase()
+          .match(/^[a-zA-Z0-9]+[a-zA-Z0-9.\-\_]*@[a-zA-Z0-9]{1}[a-zA-Z0-9-]+[.][a-zA-Z0-9-]+/);
+        //als er geen match is is het niet correct
+        if (resultaat == null) {
+          //niet correct
+          ingevuld = false;
+        }
         return ingevuld;
       }
 
       function validatePayment(veld) {
+        //Oproepen van de verschillende opties
         let bankingApp = document.querySelector("#flexRadioBankingApp");
         let overschrijving = document.querySelector("#flexRadioOverschrijving");
         let visa = document.querySelector("#flexRadioVisa");
         let paypal = document.querySelector("#flexRadioPaypal");
-        // indien niets is ingevuld, error geven
-        //niet zeker of dit moet volgens de opdracht....)
+        //Nakeijken dat er een optie is aangeduid
+        //VRAAG AAN NIELS: Onduidelijk uit oefening of dit vakje MOET ingevuld zijn...
         if (!bankingApp.checked && !overschrijving.checked && !visa.checked && !paypal.checked) {
           let bericht = "Je hebt geen betalingswijze aangeduid.";
-          errorArray.push(bericht);
+          errors.push(bericht);
         } else {
-          let bericht = "<h5>Betalingswijze</h5><p>Je betalingswijze is";
+          //Indien een optie is aangeduid.
+          //Invullen van de info alert met de keuze.
+          let bericht = "<h4>Betalingswijze</h4><p>Je betalingswijze is";
           if (bankingApp.checked) {
             bericht += " Banking app";
           }
@@ -285,8 +321,11 @@
             bericht += " Paypal";
           }
           bericht += "</p>";
-          veld.innerHTML = bericht;
-          alertInfo.classList.remove("d-none");
+          //blauwe vakje mag niet samen met rode vak, enkel blauw weergeven indien er geen errors zijn
+          if (errors.length == 0) {
+            veld.innerHTML = bericht;
+            alertInfo.classList.remove("d-none");
+          }
         }
       }
 
@@ -295,14 +334,14 @@
         let leegte = checkEmptyField(veld, bericht);
         if (!leegte && (veld.value < 1000) | (veld.value > 9999)) {
           message = "De waarde van de postcode moet tussen 1000 en 9999 liggen";
-          errorArray.push(message);
+          errors.push(message);
         }
       }
 
       function checkAlgemeneVoorwaarden(veld) {
         if (!algemeneVoorwaardenVeld.checked) {
           bericht = "Je hebt de algemene voorwaarden niet aangeduid.";
-          errorArray.push(bericht);
+          errors.push(bericht);
         }
       }
 
@@ -312,19 +351,18 @@
         alertInfo.classList.add("d-none");
       }
 
-      function showErrors(errorArray) {
-        if (errorArray.length > 0) {
-          errorArray.forEach((element) => {
-            alertError.innerHTML += element + "</br>";
+      function showErrors(errors) {
+        alertError.innerHTML = "<h4>Yikes, errors...</h4>";
+        if (errors.length > 0) {
+          errors.forEach((element) => {
+            alertError.innerHTML += "<p> " + element;
           });
           alertError.classList.remove("d-none");
         } else {
           alertSucces.classList.remove("d-none");
+          alertInfo.classList.remove("d-none");
         }
-      }
-
-      function removeErrors(errorArray) {
-        alertError.innerHTML = "";
+        alertError.innerHTML += "</p>";
       }
 
       checkForm.addEventListener("click", validateForm);
